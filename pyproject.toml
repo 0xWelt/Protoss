@@ -3,8 +3,8 @@ requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "template_python"
-description = "My awesome python project"
+name = "protoss"
+description = "Protoss - Proprietary trading optimization system"
 
 readme = "README.md"
 requires-python = ">= 3.12"
@@ -37,14 +37,14 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/0xWelt/template_python"
-Repository = "https://github.com/0xWelt/template_python"
+Homepage = "https://github.com/0xWelt/Protoss"
+Repository = "https://github.com/0xWelt/Protoss"
 
 [tool.setuptools.packages.find]
-include = ["template_python", "template_python.*"]
+include = ["protoss", "protoss.*"]
 
 [tool.setuptools.dynamic]
-version = {attr = "template_python.__version__"}
+version = {attr = "protoss.__version__"}
 
 # Pytest
 [tool.pytest.ini_options]
@@ -67,7 +67,7 @@ ignore-words = "docs/spelling_wordlist.txt"
 target-version = "py312"
 line-length = 100
 output-format = "full"
-src = ["template_python", "examples"]
+src = ["protoss", "examples"]
 
 [tool.ruff.format]
 quote-style = "single"
@@ -135,7 +135,7 @@ ignore = [
     "TRY400",  # error-instead-of-exception
     "W505",    # doc-line-too-long
 ]
-typing-modules = ["template_python.typing"]
+typing-modules = ["protoss.typing"]
 allowed-confusables = ["，", "。", "：", "？", "！", "、", "（", "）", "；", "“", "”"]
 extend-safe-fixes = [
     "C408",     # unnecessary-collection-call
@@ -178,8 +178,8 @@ max-statements = 60
 ]
 
 [tool.ruff.lint.isort]
-known-first-party = ["template_python"]
-known-local-folder = ["template_python", "examples", "tests"]
+known-first-party = ["protoss"]
+known-local-folder = ["protoss", "examples", "tests"]
 lines-after-imports = 2
 
 [tool.ruff.lint.flake8-annotations]
