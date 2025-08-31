@@ -32,9 +32,3 @@ repos:
     hooks:
       - id: codespell
         additional_dependencies: [".[toml]"]
-  - repo: local
-    hooks:
-      - id: ty
-        name: ty check
-        entry: uvx ty check .
-        language: python

@@ -1,5 +1,6 @@
 # project specific
 uv.lock
+examples/config.json
 
 # AI tools
 .claude/
