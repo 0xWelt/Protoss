@@ -31,6 +31,7 @@ jobs:
         cache-dependency-glob: |
           pyproject.toml
           uv.lock
+        cache-suffix: ${{ github.run_id }}
 
     - name: Cache pytest
       uses: actions/cache@v4
