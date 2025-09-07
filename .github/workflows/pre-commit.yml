@@ -44,3 +44,7 @@ jobs:
     - name: Run pre-commit
       run: |
         uv run pre-commit run --all-files
+
+    - name: Prune uv cache for CI
+      run: |
+        uv cache prune --ci
