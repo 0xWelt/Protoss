@@ -17,6 +17,19 @@ jobs:
       with:
         enable-cache: true
         python-version: '3.12'
+        cache-dependency-glob: |
+          pyproject.toml
+          uv.lock
+
+    - name: Cache pytest
+      uses: actions/cache@v4
+      with:
+        path: |
+          .pytest_cache
+          .coverage
+        key: pytest-${{ runner.os }}-${{ hashFiles('pyproject.toml', 'uv.lock') }}
+        restore-keys: |
+          pytest-${{ runner.os }}-
 
     - name: Install dependencies
       run: |
