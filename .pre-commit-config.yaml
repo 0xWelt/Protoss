@@ -32,3 +32,13 @@ repos:
     hooks:
       - id: codespell
         additional_dependencies: [".[toml]"]
+
+  - repo: local
+    # use local repo to run pyright, to use dependencies and configs in pyproject.toml
+    hooks:
+      - id: pyright
+        name: pyright
+        language: system
+        entry: uv run --extra dev pyright
+        types_or: [python, pyi]
+        require_serial: true

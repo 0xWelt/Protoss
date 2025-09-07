@@ -55,10 +55,86 @@ def json_loads(data: str) -> dict[str, Any]:
     Returns:
         The loaded JSON data.
     """
-    return orjson.loads(data)
+    try:
+        return orjson.loads(data)
+    except orjson.JSONDecodeError:
+        # Fallback to standard library for edge cases like NaN
+        return json.loads(data)
 
 
-class JSONL:
+class BaseJSONL:
+    """Base class for JSONL file operations."""
+
+    def __init__(self, path: str | Path, strict_integrity: bool = False) -> None:
+        self._path = Path(path)
+        self._file = None
+        self._line_index = None
+        self._index_cache_dir = Path('/tmp/jsonl_index_cache/')
+        self._index_cache_dir.mkdir(parents=True, exist_ok=True)
+        self._strict_integrity = strict_integrity
+
+    @property
+    def line_index(self) -> list[int]:
+        """Get line index."""
+        return self._line_index if self._line_index is not None else []
+
+    @property
+    def total(self) -> int:
+        """Get total number of lines."""
+        if not Path(self._path).exists() or self.line_index is None:
+            return 0
+        return len(self.line_index)
+
+    def __len__(self) -> int:
+        """Get length."""
+        return self.total
+
+    @cached_property
+    def index_file(self) -> Path:
+        """Get index file path."""
+        ifilename = f'{self._path.stem}.jslindex'
+        adjacent_index_file = self._path.with_name(ifilename)
+        if adjacent_index_file.exists() or os.access(self._path, os.W_OK):
+            # 1. already has index file  2. writable file system
+            return adjacent_index_file
+        elif self._index_cache_dir:
+            # otherwise, create index file in index cache dir
+            p0 = Path(self._path.resolve())
+            rel_path = p0.relative_to('/')
+            ifile = self._index_cache_dir / str(rel_path)
+            ifile.parent.mkdir(parents=True, exist_ok=True)
+            ifile = ifile.parent / ifilename
+            return ifile
+        else:
+            raise RuntimeError(f'Cannot create index file for {self._path}')
+
+    def _atomic_create_index_file(self, line_index: list[int]) -> None:
+        """
+        Create index file atomically.
+
+        Args:
+            line_index: The begin position of each line, including the last line-end.
+
+        Raises:
+            OSError: If the index file cannot be created.
+        """
+        tmp_path: str | None = None
+        try:
+            with tempfile.NamedTemporaryFile(
+                mode='wb', delete=False, dir=self.index_file.parent
+            ) as tmp_file:
+                np.array(line_index, dtype=np.int64).tofile(tmp_file)
+                tmp_path = tmp_file.name
+            # 设置正确的权限, 默认是 0o600
+            os.chmod(tmp_path, 0o644)
+            os.replace(tmp_path, self.index_file)
+        except OSError:
+            if tmp_path is not None and os.path.exists(tmp_path):
+                os.unlink(tmp_path)
+            raise
+
+
+class JSONL(BaseJSONL):
     """
     A simple JSONL file reader/writer
 
@@ -84,11 +160,7 @@ class JSONL:
     _index_cache_dir: Path = Path('/tmp/jsonl_index_cache/')
 
     def __init__(self, path: str | Path, strict_integrity: bool = False) -> None:
-        self._path = Path(path)
-        self._file = None
-        self._line_index = None
-        self._index_cache_dir.mkdir(parents=True, exist_ok=True)
-        self._strict_integrity = strict_integrity
+        super().__init__(path, strict_integrity)
 
     @classmethod
     def set_index_cache_dir(cls, index_cache_dir: Path) -> None:
@@ -113,53 +185,6 @@ class JSONL:
 
         self._file = None
         self._line_index = []
-
-    @cached_property
-    def index_file(self) -> Path:
-        ifilename = f'{self._path.stem}.jslindex'
-        adjacent_index_file = self._path.with_name(ifilename)
-        if adjacent_index_file.exists() or os.access(self._path, os.W_OK):
-            # 1. already has index file  2. writable file system
-            return adjacent_index_file
-        elif self._index_cache_dir:
-            # otherwise, create index file in index cache dir
-            p0 = Path(self._path.resolve())
-            rel_path = p0.relative_to('/')
-            ifile = self._index_cache_dir / str(rel_path)
-            ifile.parent.mkdir(parents=True, exist_ok=True)
-            ifile = ifile.parent / ifilename
-            return ifile
-        else:
-            raise RuntimeError(f'Cannot create index file for {self._path}')
-
-    @property
-    def line_index(self) -> list[int]:
-        return self._line_index
-
-    def _atomic_create_index_file(self, line_index: list[int]) -> None:
-        """
-        Create index file atomically.
-
-        Args:
-            line_index: The begin position of each line, including the last line-end.
-
-        Raises:
-            OSError: If the index file cannot be created.
-        """
-        try:
-            tmp_path = None
-            with tempfile.NamedTemporaryFile(
-                mode='wb', delete=False, dir=self.index_file.parent
-            ) as tmp_file:
-                np.array(line_index, dtype=np.int64).tofile(tmp_file)
-                tmp_path = tmp_file.name
-            # 设置正确的权限, 默认是 0o600
-            os.chmod(tmp_path, 0o644)
-            os.replace(tmp_path, self.index_file)
-        except OSError:
-            if tmp_path is not None and os.path.exists(tmp_path):
-                os.unlink(tmp_path)
-            raise
 
     def _build_line_index(self) -> None:
         assert self._file
@@ -205,24 +230,16 @@ class JSONL:
         return True
 
     def write(self, data: dict[str, Any]) -> None:
+        if self._file is None:
+            raise ValueError('File not opened')
         self._file.write(json_dumps(data) + '\n')
         self._file.flush()
 
-    @property
-    def total(self) -> int:
-        if not Path(self._path).exists() or self.line_index is None:
-            return 0
-
-        return len(self.line_index)
-
-    def __len__(self) -> int:
-        if not self._file:
-            raise ValueError('File not opened')
-        return self.total
-
     def __getitem__(self, index: int) -> dict[str, Any]:
-        if not self._file:
+        if self._file is None:
             raise ValueError('File not opened')
+        if self._line_index is None:
+            raise ValueError('Line index not built')
 
         if index < 0:
             index += self.total
@@ -253,7 +270,7 @@ class JSONL:
         return json_loads(line.strip())
 
 
-class AsyncJSONL(JSONL):
+class AsyncJSONL(BaseJSONL):
     """
     An async version of JSONL file reader/writer
 
@@ -276,6 +293,9 @@ class AsyncJSONL(JSONL):
         print(await f[15])
     ```
     """
+
+    def __init__(self, path: str | Path, strict_integrity: bool = False) -> None:
+        super().__init__(path, strict_integrity)
 
     @asynccontextmanager
     async def open(
@@ -339,12 +359,16 @@ class AsyncJSONL(JSONL):
         return True
 
     async def write(self, data: dict[str, Any]) -> None:
+        if self._file is None:
+            raise ValueError('File not opened')
         await self._file.write(json_dumps(data) + '\n')
         await self._file.flush()
 
     async def __getitem__(self, index: int) -> dict[str, Any]:
-        if not self._file:
+        if self._file is None:
             raise ValueError('File not opened')
+        if self._line_index is None:
+            raise ValueError('Line index not built')
 
         if index < 0:
             index += self.total

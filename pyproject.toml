@@ -64,8 +64,8 @@ filterwarnings = [
 asyncio_default_fixture_loop_scope = "function"
 # Print slowest 5 tests
 addopts = ['--durations=5', '-rsfE', '--color=yes']
-timeout = 300
-session_timeout = 480
+timeout = 30
+session_timeout = 60
 
 
 # Linter tools #################################################################
