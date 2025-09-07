@@ -18,6 +18,14 @@ jobs:
         enable-cache: true
         python-version: '3.12'
 
+    - name: Cache pre-commit
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cache/pre-commit
+          .venv
+        key: pre-commit-${{ runner.os }}-fixed
+
     - name: Install dependencies
       run: |
         uv sync --extra dev
