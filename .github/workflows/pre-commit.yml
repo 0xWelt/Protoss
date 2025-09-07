@@ -19,9 +19,9 @@ jobs:
       uses: actions/cache@v4
       with:
         path: /home/runner/work/_temp/setup-uv-cache
-        key: uv-cache-fixed
+        key: uv-pre-commit-cache
         restore-keys: |
-          uv-cache-
+          uv-pre-commit-
 
     - name: Install uv
       uses: astral-sh/setup-uv@v6
