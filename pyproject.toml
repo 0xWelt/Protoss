@@ -27,7 +27,6 @@ dependencies = [
     "numpy>=2.3.2",
     "orjson>=3.11.3",
     "pydantic>=2.11.7",
-    "python-okx>=0.4.0",
     "websockets>=15.0.1",
 ]
 
@@ -40,8 +39,11 @@ dev = [
     "pytest-timeout",
     "pytest-xdist",
     "pytest",
-    "ty>=0.0.1a19",
     "ruff>=0.12.11",
+    # for type checking
+    "pyright",
+    "types-PyYAML",
+    "types-tqdm",
 ]
 
 [project.urls]
@@ -207,3 +209,10 @@ inline-quotes = "single"
 
 [tool.ruff.lint.flake8-tidy-imports]
 ban-relative-imports = "all"
+
+[tool.pyright]
+# 关闭一些不重要的错误类型。
+# NOTE: 不要设置成none。在大家的pyright lsp中应该尽量留下这些错误，只是设置成warning不阻塞强制检查。
+reportUnnecessaryTypeIgnoreComment = "warning"
+reportMissingImports = "warning"
+reportIncompatibleMethodOverride = "warning"
