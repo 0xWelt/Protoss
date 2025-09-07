@@ -36,7 +36,8 @@ jobs:
       uses: actions/cache@v4
       with:
         path: |
-          ~/.cache/pre-commit
+          .cache/pre-commit
+          .ruff_cache
           .venv
         key: pre-commit-${{ runner.os }}-fixed
 
